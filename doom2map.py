@@ -1,4 +1,4 @@
-import omg
+import omg, sys
 
 class VertexList:
     def __init__(self,sector_id):
@@ -8,6 +8,10 @@ class VertexList:
     def add_vertex(self,x,y):
         self.vertexes.append((x,y))
 
+if __name__ == '__main__':
+    if len(sys.argv) != 2: print 'wrong number of arguments, expected 1'
+    else:
+        wad = omg.WAD(sys.argv[1])
 
 # for each sector in map
 

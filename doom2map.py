@@ -12,6 +12,12 @@ class VertexList:
     def add_vertex(self,x,y):
         self.vertexes.append((x,y))
 
+    def to_string(self):
+        output = "{}:".format(self.sector_id)
+        for v in self.vertexes:
+            output += "({},{})".format(v[0],v[1])
+        return output
+
 def get_sidedefs_of_sector(mapedit, sector):
     # input: mapeditor object, sector number
     # output: list of sidedef references
@@ -23,6 +29,17 @@ def get_sidedefs_of_sector(mapedit, sector):
 
     return output
 
+def flip_line(mapedit, linedef_id):
+    # flips a linedef's vx_a and vx_b, and the front/back sides
+    temp_vx = mapedit.linedefs[linedef_id].vx_a
+    temp_sd = mapedit.linedefs[linedef_id].front
+
+    mapedit.linedefs[linedef_id].vx_a = mapedit.linedefs[linedef_id].vx_b
+    mapedit.linedefs[linedef_id].front = mapedit.linedefs[linedef_id].back
+
+    mapedit.linedefs[linedef_id].vx_b = temp_vx
+    mapedit.linedefs[linedef_id].back = temp_sd
+
 def get_linedefs_of_sidedefs(mapedit, sidedefs):
     # input: mapeditor object, list of sidedef references
     # output: list of linedef references
@@ -32,9 +49,20 @@ def get_linedefs_of_sidedefs(mapedit, sidedefs):
     for i in range(len(mapedit.linedefs)):
         for j in sidedefs:
             if mapedit.linedefs[i].front == j: output.append(i)
-            if mapedit.linedefs[i].back == j: output.append(i) # maybe flip these lines?
+            if mapedit.linedefs[i].back == j: 
+                flip_line(mapedit,i)
+                output.append(i) # maybe flip these lines?
 
     return output
+
+def next_linedef(mapedit, linedefs, vertex_id):
+    # input: mapeditor object, linedef list to search, vertex to look for
+    # output: linedef
+    for l in linedefs:
+        if mapedit.linedefs[l].vx_a == vertex_id:
+            return l
+    print "can't find linedef in next_linedef()!"
+    return -1
 
 def trace_sector(mapedit, sector):
     # input: mapeditor object, sector number
@@ -46,16 +74,23 @@ def trace_sector(mapedit, sector):
     # get all lines that contain the sidedefs
     linedefs = get_linedefs_of_sidedefs(mapedit,sidedefs)
 
+    newVXL = VertexList(sector)
     # beginning at the first vertex, find the next line
-    # for each vertex, add to new vertex list, 
-    # then find the next vertex
-    # do until next vertex == first vertex
+    first_ld = mapedit.linedefs[linedefs[0]]
+    #first_vx = mapedit.vertexes[first_ld.vx_a]
+    #newVXL.add_vertex(first_vx.x,first_vx.y)
 
-    # repeat until all lines are accounted for
+    cur_vx = first_ld.vx_b
+    next_ld = -1
+    # for each vertex, add to new vertex list, 
+    while next_ld != linedefs[0]:
+        next_ld = next_linedef(mapedit, linedefs, cur_vx)
+        cur_vx = mapedit.linedefs[next_ld].vx_b
+        newVXL.add_vertex(mapedit.vertexes[cur_vx].x,mapedit.vertexes[cur_vx].y)
 
     # split concave sectorssss
 
-    return []
+    return [newVXL]
 
 def map_to_vertexlists(wad,mapid):
     # input: wad, map number
@@ -64,7 +99,9 @@ def map_to_vertexlists(wad,mapid):
 
     # for every sector in the map, create vertex lists
     mapedit = omg.mapedit.MapEditor(wad.maps[mapid.upper()])
-    trace_sector(mapedit,0)
+    ar = trace_sector(mapedit,0)
+    for v in ar:
+        print v.to_string()
     #for i in range(len(mapedit.sectors)):
     #    output += trace_sector(mapedit,i)
 
